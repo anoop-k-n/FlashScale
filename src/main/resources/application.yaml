@@ -1,3 +1,16 @@
 spring:
   application:
     name: ticketsystem
+  datasource:
+    url: jdbc:postgresql://localhost:5432/sample_crud_db
+    username: user1
+    password: Ano123op!
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update   # creates/updates tables automatically
+    show-sql: true       # logs SQL (dev only)
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
