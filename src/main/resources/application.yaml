@@ -6,11 +6,20 @@ spring:
     username: user1
     password: Ano123op!
     driver-class-name: org.postgresql.Driver
+  sql:
+    init:
+      mode: always
 
   jpa:
+    defer-datasource-initialization: true
     hibernate:
       ddl-auto: update   # creates/updates tables automatically
     show-sql: true       # logs SQL (dev only)
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
+
+logging:
+  level:
+    org.springframework.jdbc.datasource.init: DEBUG
+    org.hibernate.SQL: DEBUG
