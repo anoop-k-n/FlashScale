@@ -7,19 +7,20 @@ import lombok.Getter;
 import lombok.Setter;
 
 @jakarta.persistence.Entity
+@Getter
 public class Event {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Getter @Setter
+    @Setter
     private String name;
 
-    @Getter @Setter
+    @Setter
     private int totalTickets;
 
-    @Getter @Setter
+    @Setter
     private int availableTickets;
 
     // constructors

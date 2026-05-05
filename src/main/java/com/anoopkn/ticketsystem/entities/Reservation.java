@@ -10,19 +10,20 @@ import lombok.Setter;
 import java.time.LocalDateTime;
 
 @Entity
+@Getter
 public class Reservation {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Getter @Setter
+    @Setter
     private Long eventId;
 
-    @Getter @Setter
+    @Setter
     private String reservedBy;
 
-    @Getter @Setter
+    @Setter
     private LocalDateTime reservationTime;
 
 
