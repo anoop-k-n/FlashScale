@@ -12,10 +12,12 @@ public class FlashSaleService {
 
     private final EventRepository eventRepository;
     private final ReservationRepository reservationRepository;
+    private final RedisInventoryService redisInventoryService;
 
-    public FlashSaleService(EventRepository eventRepository, ReservationRepository reservationRepository) {
+    public FlashSaleService(EventRepository eventRepository, ReservationRepository reservationRepository, RedisInventoryService redisInventoryService) {
         this.eventRepository = eventRepository;
         this.reservationRepository = reservationRepository;
+        this.redisInventoryService = redisInventoryService;
     }
 
     @Transactional
@@ -59,5 +61,19 @@ public class FlashSaleService {
         }
 
         return false;
+    }
+
+
+    public String reserveTicketRedis(Long eventId, String userId) {
+        // 1. Fast Path: Check and decrement in Redis atomically
+        boolean isReserved = redisInventoryService.reserveTicketAtomically(eventId);
+
+        if (isReserved) {
+            // Right now, Redis knows the ticket is sold, but PostgreSQL does not.
+            // In Phase 4, we will push an event to Kafka here to sync them up safely.
+            return "Success: Ticket secured in Redis for user " + userId;
+        }
+
+        return "Failed: Sold Out";
     }
 }

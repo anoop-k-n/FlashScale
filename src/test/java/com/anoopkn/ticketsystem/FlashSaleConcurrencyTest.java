@@ -4,6 +4,7 @@ import com.anoopkn.ticketsystem.entities.Event;
 import com.anoopkn.ticketsystem.repositories.EventRepository;
 import com.anoopkn.ticketsystem.repositories.ReservationRepository;
 import com.anoopkn.ticketsystem.services.FlashSaleService;
+import com.anoopkn.ticketsystem.services.RedisInventoryService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -24,6 +25,9 @@ public class FlashSaleConcurrencyTest {
 
     @Autowired
     private ReservationRepository reservationRepository;
+
+    @Autowired
+    private RedisInventoryService redisInventoryService;
 
     @Test
     public void proveRaceCondition() throws InterruptedException {
@@ -87,5 +91,54 @@ public class FlashSaleConcurrencyTest {
         System.out.println("Actual Reservation Records in DB: " + actualReservationsInDb);
 
         // If the system was safe, Success Responses and DB Records would be exactly 10.
+    }
+
+    @Test
+    public void proveRedisPerformance() throws InterruptedException {
+        Long eventId = 999L; // Dummy ID for this test
+        int totalTickets = 10;
+        int numberOfThreads = 1000; // Increased to 1000 users!
+
+        // 1. Seed Redis with 10 tickets
+        redisInventoryService.seedInventory(eventId, totalTickets);
+
+        ExecutorService executorService = Executors.newFixedThreadPool(numberOfThreads);
+        CountDownLatch startLatch = new CountDownLatch(1);
+        CountDownLatch completionLatch = new CountDownLatch(numberOfThreads);
+        AtomicInteger successfulReservations = new AtomicInteger(0);
+
+        // 2. Queue up 1000 threads
+        for (int i = 0; i < numberOfThreads; i++) {
+            String userId = "User_" + i;
+            executorService.submit(() -> {
+                try {
+                    startLatch.await();
+
+                    // Hit the new Redis method
+                    String response = flashSaleService.reserveTicketRedis(eventId, userId);
+                    if (response.startsWith("Success")) {
+                        successfulReservations.incrementAndGet();
+                    }
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                } finally {
+                    completionLatch.countDown();
+                }
+            });
+        }
+
+        System.out.println("All 1000 threads queued. Firing the starting gun...");
+        long startTime = System.currentTimeMillis();
+
+        startLatch.countDown();
+        completionLatch.await();
+        executorService.shutdown();
+
+        long endTime = System.currentTimeMillis();
+
+        System.out.println("--- REDIS TEST RESULTS ---");
+        System.out.println("Total Requests: " + numberOfThreads);
+        System.out.println("Success Responses Sent: " + successfulReservations.get());
+        System.out.println("Time Taken for 1000 requests: " + (endTime - startTime) + "ms");
     }
 }
