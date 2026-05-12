@@ -13,11 +13,13 @@ public class FlashSaleService {
     private final EventRepository eventRepository;
     private final ReservationRepository reservationRepository;
     private final RedisInventoryService redisInventoryService;
+    private final ReservationEventProducer eventProducer;
 
-    public FlashSaleService(EventRepository eventRepository, ReservationRepository reservationRepository, RedisInventoryService redisInventoryService) {
+    public FlashSaleService(EventRepository eventRepository, ReservationRepository reservationRepository, RedisInventoryService redisInventoryService, ReservationEventProducer eventProducer) {
         this.eventRepository = eventRepository;
         this.reservationRepository = reservationRepository;
         this.redisInventoryService = redisInventoryService;
+        this.eventProducer = eventProducer;
     }
 
     @Transactional
@@ -72,6 +74,21 @@ public class FlashSaleService {
             // Right now, Redis knows the ticket is sold, but PostgreSQL does not.
             // In Phase 4, we will push an event to Kafka here to sync them up safely.
             return "Success: Ticket secured in Redis for user " + userId;
+        }
+
+        return "Failed: Sold Out";
+    }
+
+    public String reserveTicketRedisAndKafka(Long eventId, String userId) {
+
+        // 1. Fast Path: Atomic Lua Script
+        boolean isReserved = redisInventoryService.reserveTicketAtomically(eventId);
+
+        if (isReserved) {
+            // 2. The Handoff: Publish to Kafka asynchronously
+            eventProducer.sendReservationEvent(eventId, userId);
+
+            return "Success: Ticket secured! Confirmation will be sent shortly.";
         }
 
         return "Failed: Sold Out";

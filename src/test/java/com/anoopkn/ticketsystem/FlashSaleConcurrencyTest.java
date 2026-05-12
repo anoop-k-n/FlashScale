@@ -115,7 +115,7 @@ public class FlashSaleConcurrencyTest {
                     startLatch.await();
 
                     // Hit the new Redis method
-                    String response = flashSaleService.reserveTicketRedis(eventId, userId);
+                    String response = flashSaleService.reserveTicketRedisAndKafka(eventId, userId);
                     if (response.startsWith("Success")) {
                         successfulReservations.incrementAndGet();
                     }
